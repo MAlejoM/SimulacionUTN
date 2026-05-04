@@ -1,0 +1,45 @@
+
+╔════════════════════════════════════════════════════════════════════════╗
+║              RESUMEN DE RESULTADOS - SIMULACIÓN DE RULETA              ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+📊 PARÁMETROS DE SIMULACIÓN:
+  • Número de corridas: 100
+  • Tiradas por corrida: 1,000
+  • Número elegido: 17
+  • Total de tiradas: 100,000
+  • Total de aciertos: 2,713
+
+📈 ESTADÍSTICAS - ACIERTOS POR CORRIDA:
+  • Media de aciertos: 27.1300
+  • Varianza empírica: 25.043535
+  • Desviación estándar: 5.004352
+  • Valor esperado teórico: 27.0270
+
+📊 ESTADÍSTICAS - FRECUENCIA RELATIVA:
+  • Media de f.r.: 0.027130
+  • Varianza de f.r.: 0.00002504
+  • Desviación estándar de f.r.: 0.00500435
+
+🎲 PROBABILIDADES:
+  • Probabilidad teórica: 0.027027 (1/37)
+  • Probabilidad empírica: 0.027130
+  • Diferencia: 0.000103
+  • Error relativo: 0.38%
+
+📐 VARIANZA:
+  • Varianza teórica: 0.00002630
+  • Varianza empírica: 25.04353535
+  • Diferencia: 25.04350906
+
+✅ ANÁLISIS:
+  • Número más frecuente: 6 
+    (frecuencia: 2819)
+  • Número menos frecuente: 18 
+    (frecuencia: 2577)
+  • Aciertos máximos en una corrida: 41
+  • Aciertos mínimos en una corrida: 13
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                           FIN DEL RESUMEN                             ║
+╚════════════════════════════════════════════════════════════════════════╝
