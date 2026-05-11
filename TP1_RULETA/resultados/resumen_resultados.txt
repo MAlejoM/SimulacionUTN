@@ -1,45 +1,37 @@
 
-╔════════════════════════════════════════════════════════════════════════╗
-║              RESUMEN DE RESULTADOS - SIMULACIÓN DE RULETA              ║
-╚════════════════════════════════════════════════════════════════════════╝
+RESUMEN DE RESULTADOS - SIMULACIÓN DE RULETA
 
-📊 PARÁMETROS DE SIMULACIÓN:
-  • Número de corridas: 100
-  • Tiradas por corrida: 1,000
-  • Número elegido: 17
-  • Total de tiradas: 100,000
-  • Total de aciertos: 2,713
+Parámetros:
+- Corridas: 100
+- Tiradas por corrida: 1,000
+- Número elegido: 17
+- Total de tiradas: 100,000
+- Total de aciertos: 2,791
 
-📈 ESTADÍSTICAS - ACIERTOS POR CORRIDA:
-  • Media de aciertos: 27.1300
-  • Varianza empírica: 25.043535
-  • Desviación estándar: 5.004352
-  • Valor esperado teórico: 27.0270
+Aciertos por corrida:
+- Media: 27.9100
+- Varianza empírica: 30.850404
+- Desviación estándar: 5.554314
+- Valor esperado teórico: 27.0270
 
-📊 ESTADÍSTICAS - FRECUENCIA RELATIVA:
-  • Media de f.r.: 0.027130
-  • Varianza de f.r.: 0.00002504
-  • Desviación estándar de f.r.: 0.00500435
+Frecuencia relativa:
+- Media: 0.027910
+- Varianza: 0.00003085
+- Desviación estándar: 0.00555431
 
-🎲 PROBABILIDADES:
-  • Probabilidad teórica: 0.027027 (1/37)
-  • Probabilidad empírica: 0.027130
-  • Diferencia: 0.000103
-  • Error relativo: 0.38%
+Probabilidades:
+- Teórica: 0.027027 (1/37)
+- Empírica: 0.027910
+- Diferencia absoluta: 0.000883
+- Error relativo: 3.27%
 
-📐 VARIANZA:
-  • Varianza teórica: 0.00002630
-  • Varianza empírica: 25.04353535
-  • Diferencia: 25.04350906
+Varianza:
+- Teórica: 26.29656684
+- Empírica: 30.85040404
+- Diferencia absoluta: 4.55383720
 
-✅ ANÁLISIS:
-  • Número más frecuente: 6 
-    (frecuencia: 2819)
-  • Número menos frecuente: 18 
-    (frecuencia: 2577)
-  • Aciertos máximos en una corrida: 41
-  • Aciertos mínimos en una corrida: 13
-
-╔════════════════════════════════════════════════════════════════════════╗
-║                           FIN DEL RESUMEN                             ║
-╚════════════════════════════════════════════════════════════════════════╝
+Análisis:
+- Número más frecuente: 26 (frecuencia: 2834)
+- Número menos frecuente: 28 (frecuencia: 2594)
+- Aciertos máximos en una corrida: 40
+- Aciertos mínimos en una corrida: 16
