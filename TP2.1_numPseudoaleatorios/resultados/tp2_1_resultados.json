@@ -23,7 +23,7 @@
         {
           "test": "chi_square",
           "statistic": 6.642,
-          "p_value": 0.674335996102475,
+          "p_value": 0.6743359961024751,
           "decision": "OK"
         },
         {
@@ -40,8 +40,8 @@
         },
         {
           "test": "autocorr",
-          "statistic": -0.0037410997150174726,
-          "p_value": 0.7083364168077761,
+          "statistic": -0.003741099715017487,
+          "p_value": 0.708336416807775,
           "decision": "OK"
         }
       ]
@@ -61,7 +61,7 @@
         {
           "test": "chi_square",
           "statistic": 46.33333333333333,
-          "p_value": 5.221998479011321e-07,
+          "p_value": 5.221998479011319e-07,
           "decision": "ERROR"
         },
         {
@@ -78,8 +78,8 @@
         },
         {
           "test": "autocorr",
-          "statistic": 0.3945932132427404,
-          "p_value": 0.19063001645875755,
+          "statistic": 0.39459321324274055,
+          "p_value": 0.19063001645875732,
           "decision": "OK"
         }
       ]
@@ -114,8 +114,8 @@
         },
         {
           "test": "autocorr",
-          "statistic": 0.017281390615925877,
-          "p_value": 0.08397878505256307,
+          "statistic": 0.01728139061592587,
+          "p_value": 0.08397878505256329,
           "decision": "OK"
         }
       ]

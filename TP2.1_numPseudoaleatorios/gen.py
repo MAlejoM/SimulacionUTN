@@ -5,6 +5,9 @@ import math
 import random
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
@@ -255,6 +258,165 @@ def print_test_table(test_results):
 		)
 
 
+COLORES = ["#2196F3", "#F44336", "#4CAF50"]
+
+
+def plot_generators(generators, output_prefix):
+	"""Genera 3 gráficas comparativas y las guarda como PNG."""
+	names  = [g["name"]        for g in generators]
+	u_vals = [g["u"]           for g in generators]
+
+	# ── 1. Histogramas de distribución ───────────────────────────
+	fig, axes = plt.subplots(1, 3, figsize=(15, 4), sharey=False)
+	fig.suptitle("Distribución de valores generados (histograma)", fontsize=13)
+	for ax, name, u, color in zip(axes, names, u_vals, COLORES):
+		if len(u) == 0:
+			ax.text(0.5, 0.5, "Sin datos", ha="center", va="center")
+		else:
+			ax.hist(u, bins=20, range=(0, 1), color=color, edgecolor="white", alpha=0.85)
+			ax.axhline(len(u) / 20, color="black", linestyle="--", linewidth=1, label="Esperado")
+			ax.legend(fontsize=8)
+		ax.set_title(name, fontsize=11)
+		ax.set_xlabel("Valor u")
+		ax.set_ylabel("Frecuencia")
+		ax.set_xlim(0, 1)
+	plt.tight_layout()
+	path_hist = output_prefix.parent / (output_prefix.name + "_histogramas.png")
+	fig.savefig(path_hist, dpi=150)
+	plt.close(fig)
+
+	# ── 2. Dispersión u_i vs u_{i+1} (detección de patrones) ─────
+	fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+	fig.suptitle("Dispersión u_i vs u_{i+1} (correlación sucesiva)", fontsize=13)
+	for ax, name, u, color in zip(axes, names, u_vals, COLORES):
+		if len(u) < 2:
+			ax.text(0.5, 0.5, "Insuficientes datos", ha="center", va="center")
+		else:
+			max_pts = min(len(u) - 1, 5000)
+			ax.scatter(u[:max_pts], u[1:max_pts+1],
+					   s=1.5, alpha=0.35, color=color)
+		ax.set_title(name, fontsize=11)
+		ax.set_xlabel("u_i")
+		ax.set_ylabel("u_{i+1}")
+		ax.set_xlim(0, 1)
+		ax.set_ylim(0, 1)
+	plt.tight_layout()
+	path_scatter = output_prefix.parent / (output_prefix.name + "_dispersion.png")
+	fig.savefig(path_scatter, dpi=150)
+	plt.close(fig)
+
+	# ── 3. Serie temporal (primeros 200 valores) ─────────────────
+	fig, ax = plt.subplots(figsize=(14, 4))
+	fig.suptitle("Serie temporal — primeros 200 valores generados", fontsize=13)
+	for name, u, color in zip(names, u_vals, COLORES):
+		n = min(len(u), 200)
+		if n == 0:
+			continue
+		ax.plot(range(n), u[:n], color=color, linewidth=0.8,
+				marker="o", markersize=2, alpha=0.7, label=name)
+	ax.axhline(0.5, color="black", linestyle="--", linewidth=0.8, label="Media teórica")
+	ax.set_xlabel("Índice")
+	ax.set_ylabel("Valor u")
+	ax.set_ylim(-0.05, 1.05)
+	ax.legend(fontsize=9)
+	plt.tight_layout()
+	path_series = output_prefix.parent / (output_prefix.name + "_serie_temporal.png")
+	fig.savefig(path_series, dpi=150)
+	plt.close(fig)
+
+	return path_hist, path_scatter, path_series
+
+
+def plot_pvalues(generators, test_results_map, alpha, output_prefix):
+	"""Gráfica de barras agrupadas: p-valor por test y generador."""
+	test_keys = ["chi_square", "ks", "runs", "autocorr"]
+	test_labels = [NOMBRES_TEST[k] for k in test_keys]
+	names = [g["name"] for g in generators]
+
+	x = np.arange(len(test_keys))
+	width = 0.22
+	fig, ax = plt.subplots(figsize=(12, 5))
+	for i, (name, color) in enumerate(zip(names, COLORES)):
+		pvals = []
+		for tk in test_keys:
+			row = next((r for r in test_results_map[name] if r["test"] == tk), None)
+			pvals.append(row["p_value"] if row and row["p_value"] is not None else 0.0)
+		offset = (i - 1) * width
+		bars = ax.bar(x + offset, pvals, width, label=name, color=color, alpha=0.85, edgecolor="white")
+		for bar, pv in zip(bars, pvals):
+			if pv is not None:
+				ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01,
+						f"{pv:.2f}", ha="center", va="bottom", fontsize=7)
+	ax.axhline(alpha, color="red", linestyle="--", linewidth=1.2, label=f"\u03b1 = {alpha}")
+	ax.set_xticks(x)
+	ax.set_xticklabels(test_labels, fontsize=10)
+	ax.set_ylabel("p-valor")
+	ax.set_ylim(0, 1.12)
+	ax.set_title("P-valores por test y generador", fontsize=13)
+	ax.legend(fontsize=9)
+	plt.tight_layout()
+	path_pval = output_prefix.parent / (output_prefix.name + "_pvalores.png")
+	fig.savefig(path_pval, dpi=150)
+	plt.close(fig)
+	return path_pval
+
+
+def plot_acf(generators, max_lag, output_prefix):
+	"""Función de autocorrelación (ACF) para múltiples lags."""
+	fig, axes = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
+	fig.suptitle(f"Autocorrelación (ACF) — lags 1–{max_lag}", fontsize=13)
+	for ax, gen, color in zip(axes, generators, COLORES):
+		u = np.array(gen["u"], dtype=float)
+		lags = range(1, max_lag + 1)
+		rs = []
+		for lag in lags:
+			if len(u) > lag:
+				r = np.corrcoef(u[:-lag], u[lag:])[0, 1]
+				rs.append(r if not np.isnan(r) else 0.0)
+			else:
+				rs.append(0.0)
+		conf = 1.96 / np.sqrt(max(len(u), 1))
+		ax.bar(list(lags), rs, color=color, alpha=0.8, edgecolor="white")
+		ax.axhline( conf, color="red",  linestyle="--", linewidth=1, label="\u00b195% IC")
+		ax.axhline(-conf, color="red",  linestyle="--", linewidth=1)
+		ax.axhline(0,     color="black", linestyle="-",  linewidth=0.5)
+		ax.set_title(gen["name"], fontsize=11)
+		ax.set_xlabel("Lag")
+		ax.set_ylabel("Autocorrelación")
+		ax.legend(fontsize=8)
+	plt.tight_layout()
+	path_acf = output_prefix.parent / (output_prefix.name + "_acf.png")
+	fig.savefig(path_acf, dpi=150)
+	plt.close(fig)
+	return path_acf
+
+
+def plot_qq(generators, output_prefix):
+	"""Q-Q plot de valores generados vs. distribución uniforme teórica."""
+	fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+	fig.suptitle("Q-Q plot: cuantiles empíricos vs. Uniforme(0,1)", fontsize=13)
+	for ax, gen, color in zip(axes, generators, COLORES):
+		u = np.sort(gen["u"])
+		n = len(u)
+		if n < 2:
+			ax.text(0.5, 0.5, "Insuficientes datos", ha="center", va="center")
+		else:
+			theoretical = np.linspace(0, 1, n)
+			ax.scatter(theoretical, u, s=2, alpha=0.4, color=color)
+			ax.plot([0, 1], [0, 1], "k--", linewidth=1, label="Línea ideal")
+			ax.legend(fontsize=8)
+		ax.set_title(gen["name"], fontsize=11)
+		ax.set_xlabel("Cuantiles teóricos")
+		ax.set_ylabel("Cuantiles empíricos")
+		ax.set_xlim(0, 1)
+		ax.set_ylim(0, 1)
+	plt.tight_layout()
+	path_qq = output_prefix.parent / (output_prefix.name + "_qq.png")
+	fig.savefig(path_qq, dpi=150)
+	plt.close(fig)
+	return path_qq
+
+
 def write_csv(rows, path):
 	with path.open("w", newline="", encoding="utf-8") as file:
 		writer = csv.DictWriter(
@@ -318,10 +480,12 @@ def main():
 
 	report   = {"config": {"n": args.n, "alpha": args.alpha, "bins": args.bins, "lag": args.lag}, "generadores": []}
 	csv_rows = []
+	all_test_results = {}
 
 	for gen in generators:
 		print_generator_summary(gen)
 		test_results = run_tests(gen["u"], args.alpha, args.bins, args.lag)
+		all_test_results[gen["name"]] = test_results
 		print_test_table(test_results)
 		print()
 
@@ -355,10 +519,19 @@ def main():
 	write_csv(csv_rows, csv_path)
 	write_json(report, json_path)
 
+	test_results_map = all_test_results
+
+	path_hist, path_scatter, path_series = plot_generators(generators, output_prefix)
+	path_pval = plot_pvalues(generators, test_results_map, args.alpha, output_prefix)
+	path_acf  = plot_acf(generators, max_lag=20, output_prefix=output_prefix)
+	path_qq   = plot_qq(generators, output_prefix)
+
 	print_separator("═")
 	print(f"  Resultados exportados:")
 	print(f"    CSV  → {csv_path}")
 	print(f"    JSON → {json_path}")
+	for p in [path_hist, path_scatter, path_series, path_pval, path_acf, path_qq]:
+		print(f"    PNG  → {p.name}")
 	print_separator("═")
 
 
