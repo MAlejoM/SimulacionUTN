@@ -1,0 +1,124 @@
+{
+  "config": {
+    "n": 10000,
+    "alpha": 0.05,
+    "bins": 10,
+    "lag": 1
+  },
+  "generadores": [
+    {
+      "info": {
+        "nombre": "GCL",
+        "semilla": 12345,
+        "parametros": {
+          "a": 1103515245,
+          "c": 12345,
+          "m": 2147483648
+        },
+        "n_generados": 10000,
+        "razon_corte": "n_alcanzado",
+        "ciclo_detectado": false
+      },
+      "pruebas": [
+        {
+          "test": "chi_square",
+          "statistic": 6.642,
+          "p_value": 0.674335996102475,
+          "decision": "OK"
+        },
+        {
+          "test": "ks",
+          "statistic": 0.008089632542431335,
+          "p_value": 0.5269580804503994,
+          "decision": "OK"
+        },
+        {
+          "test": "runs",
+          "statistic": 1.4801389635365596,
+          "p_value": 0.138836165196635,
+          "decision": "OK"
+        },
+        {
+          "test": "autocorr",
+          "statistic": -0.0037410997150174726,
+          "p_value": 0.7083364168077761,
+          "decision": "OK"
+        }
+      ]
+    },
+    {
+      "info": {
+        "nombre": "CuadradosMedios",
+        "semilla": 2345,
+        "parametros": {
+          "digitos": 4
+        },
+        "n_generados": 12,
+        "razon_corte": "degeneracion_cero",
+        "ciclo_detectado": false
+      },
+      "pruebas": [
+        {
+          "test": "chi_square",
+          "statistic": 46.33333333333333,
+          "p_value": 5.221998479011321e-07,
+          "decision": "ERROR"
+        },
+        {
+          "test": "ks",
+          "statistic": 0.7284333333333334,
+          "p_value": 5.194232456706222e-07,
+          "decision": "ERROR"
+        },
+        {
+          "test": "runs",
+          "statistic": 0.44721359549995876,
+          "p_value": 0.6547208460185765,
+          "decision": "OK"
+        },
+        {
+          "test": "autocorr",
+          "statistic": 0.3945932132427404,
+          "p_value": 0.19063001645875755,
+          "decision": "OK"
+        }
+      ]
+    },
+    {
+      "info": {
+        "nombre": "PythonRandom",
+        "semilla": 12345,
+        "parametros": {},
+        "n_generados": 10000,
+        "razon_corte": "n_alcanzado",
+        "ciclo_detectado": false
+      },
+      "pruebas": [
+        {
+          "test": "chi_square",
+          "statistic": 5.884000000000001,
+          "p_value": 0.751469619914629,
+          "decision": "OK"
+        },
+        {
+          "test": "ks",
+          "statistic": 0.007728401262577345,
+          "p_value": 0.5861305415545519,
+          "decision": "OK"
+        },
+        {
+          "test": "runs",
+          "statistic": -1.9363272646091652,
+          "p_value": 0.05282763156984993,
+          "decision": "OK"
+        },
+        {
+          "test": "autocorr",
+          "statistic": 0.017281390615925877,
+          "p_value": 0.08397878505256307,
+          "decision": "OK"
+        }
+      ]
+    }
+  ]
+}
