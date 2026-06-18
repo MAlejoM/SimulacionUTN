@@ -1,0 +1,21 @@
+{
+    "distribucion": "binomial",
+    "n": 10000,
+    "parametros": [
+        10,
+        0.3
+    ],
+    "estadisticas": {
+        "media_teorica": 3.0,
+        "media_muestral": 3.022,
+        "error_media_%": 0.73,
+        "var_teorica": 2.0999999999999996,
+        "var_muestral": 2.063922,
+        "error_var_%": 1.72
+    },
+    "test_bondad": {
+        "chi2": 15.2826,
+        "p_value": 0.0539,
+        "pasa_test_05": true
+    }
+}

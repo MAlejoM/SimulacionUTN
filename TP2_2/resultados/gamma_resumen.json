@@ -1,0 +1,21 @@
+{
+    "distribucion": "gamma",
+    "n": 10000,
+    "parametros": [
+        5,
+        2.0
+    ],
+    "estadisticas": {
+        "media_teorica": 2.5,
+        "media_muestral": 2.48073,
+        "error_media_%": 0.77,
+        "var_teorica": 1.25,
+        "var_muestral": 1.231341,
+        "error_var_%": 1.49
+    },
+    "test_bondad": {
+        "estadistico_D": 0.008499,
+        "p_value": 0.462982,
+        "pasa_test_05": true
+    }
+}

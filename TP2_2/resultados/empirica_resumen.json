@@ -1,0 +1,22 @@
+{
+    "distribucion": "empirica",
+    "n": 10000,
+    "parametros": [
+        1,
+        2,
+        3
+    ],
+    "estadisticas": {
+        "media_teorica": 2.1,
+        "media_muestral": 2.0946,
+        "error_media_%": 0.26,
+        "var_teorica": 0.49,
+        "var_muestral": 0.4923,
+        "error_var_%": 0.47
+    },
+    "test_bondad": {
+        "chi2": 0.7203,
+        "p_value": 0.6976,
+        "pasa_test_05": true
+    }
+}

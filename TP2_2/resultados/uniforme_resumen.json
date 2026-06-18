@@ -1,0 +1,21 @@
+{
+    "distribucion": "uniforme",
+    "n": 10000,
+    "parametros": [
+        0,
+        10
+    ],
+    "estadisticas": {
+        "media_teorica": 5.0,
+        "media_muestral": 5.040304,
+        "error_media_%": 0.81,
+        "var_teorica": 8.333333333333334,
+        "var_muestral": 8.450709,
+        "error_var_%": 1.41
+    },
+    "test_bondad": {
+        "estadistico_D": 0.012506,
+        "p_value": 0.086867,
+        "pasa_test_05": true
+    }
+}

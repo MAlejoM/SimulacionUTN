@@ -1,0 +1,20 @@
+{
+    "distribucion": "poisson",
+    "n": 10000,
+    "parametros": [
+        4.5
+    ],
+    "estadisticas": {
+        "media_teorica": 4.5,
+        "media_muestral": 4.4792,
+        "error_media_%": 0.46,
+        "var_teorica": 4.5,
+        "var_muestral": 4.538621,
+        "error_var_%": 0.86
+    },
+    "test_bondad": {
+        "chi2": 9.5008,
+        "p_value": 0.7977,
+        "pasa_test_05": true
+    }
+}

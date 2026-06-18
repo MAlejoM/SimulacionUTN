@@ -1,0 +1,21 @@
+{
+    "distribucion": "normal",
+    "n": 10000,
+    "parametros": [
+        0,
+        1
+    ],
+    "estadisticas": {
+        "media_teorica": 0.0,
+        "media_muestral": -0.002918,
+        "error_media_%": 0.29,
+        "var_teorica": 1.0,
+        "var_muestral": 1.006864,
+        "error_var_%": 0.69
+    },
+    "test_bondad": {
+        "estadistico_D": 0.008297,
+        "p_value": 0.494013,
+        "pasa_test_05": true
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "distribucion": "exponencial",
+    "n": 10000,
+    "parametros": [
+        2.0
+    ],
+    "estadisticas": {
+        "media_teorica": 0.5,
+        "media_muestral": 0.501978,
+        "error_media_%": 0.4,
+        "var_teorica": 0.25,
+        "var_muestral": 0.250317,
+        "error_var_%": 0.13
+    },
+    "test_bondad": {
+        "estadistico_D": 0.00895,
+        "p_value": 0.397361,
+        "pasa_test_05": true
+    }
+}

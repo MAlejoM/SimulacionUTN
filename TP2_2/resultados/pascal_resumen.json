@@ -1,0 +1,21 @@
+{
+    "distribucion": "pascal",
+    "n": 10000,
+    "parametros": [
+        3,
+        0.5
+    ],
+    "estadisticas": {
+        "media_teorica": 6.0,
+        "media_muestral": 5.9987,
+        "error_media_%": 0.02,
+        "var_teorica": 6.0,
+        "var_muestral": 5.911289,
+        "error_var_%": 1.48
+    },
+    "test_bondad": {
+        "chi2": 8.7024,
+        "p_value": 0.9662,
+        "pasa_test_05": true
+    }
+}

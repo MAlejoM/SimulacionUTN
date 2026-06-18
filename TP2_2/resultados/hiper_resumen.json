@@ -1,0 +1,22 @@
+{
+    "distribucion": "hiper",
+    "n": 10000,
+    "parametros": [
+        50,
+        20,
+        10
+    ],
+    "estadisticas": {
+        "media_teorica": 4.0,
+        "media_muestral": 3.9964,
+        "error_media_%": 0.09,
+        "var_teorica": 1.9591836734693877,
+        "var_muestral": 1.936781,
+        "error_var_%": 1.14
+    },
+    "test_bondad": {
+        "chi2": 6.5297,
+        "p_value": 0.686,
+        "pasa_test_05": true
+    }
+}
