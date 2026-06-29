@@ -1,0 +1,119 @@
+import simpy
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+def formatear_valor_archivo(valor):
+    return f"{valor:g}".replace(".", "p")
+
+def simulacion_mm1(tasa_llegada, tasa_servicio, capacidad_cola, tiempo_simulacion):
+    tiempos_llegada, tiempos_espera, tiempos_sistema = [], [], []
+    clientes_en_sistema_hist, tiempos_hist = [], []
+    clientes_rechazados = 0
+    clientes_totales = 0
+
+    def cliente(env, name, servidor):
+        nonlocal clientes_rechazados, clientes_totales
+        clientes_totales += 1
+        llegada = env.now
+        
+        # M/M/1/K (cola finita) o infinita
+        if capacidad_cola != float('inf'):
+            # Solo rechaza SI el servidor esta ocupado Y la cola esta llena
+            if servidor.count > 0 and len(servidor.queue) >= capacidad_cola:
+                clientes_rechazados += 1
+                return # Denegación de servicio
+
+        with servidor.request() as request:
+            yield request
+            espera = env.now - llegada
+            tiempos_espera.append(espera)
+            
+            tiempo_servicio = random.expovariate(tasa_servicio)
+            yield env.timeout(tiempo_servicio)
+            
+            tiempos_sistema.append(env.now - llegada)
+
+    def generador_llegadas(env, servidor):
+        i = 0
+        while True:
+            yield env.timeout(random.expovariate(tasa_llegada))
+            i += 1
+            env.process(cliente(env, f'Cliente {i}', servidor))
+
+    def monitor(env, servidor):
+        while True:
+            clientes_en_sistema_hist.append(servidor.count + len(servidor.queue))
+            tiempos_hist.append(env.now)
+            yield env.timeout(1) # Monitoreo cada unidad de tiempo
+
+    env = simpy.Environment()
+    servidor = simpy.Resource(env, capacity=1)
+    
+    env.process(generador_llegadas(env, servidor))
+    env.process(monitor(env, servidor))
+    env.run(until=tiempo_simulacion)
+
+    prob_rechazo = clientes_rechazados / clientes_totales if clientes_totales > 0 else 0
+    L = np.mean(clientes_en_sistema_hist)
+    W = np.mean(tiempos_sistema) if tiempos_sistema else 0
+    Wq = np.mean(tiempos_espera) if tiempos_espera else 0
+    
+    return L, W, Wq, prob_rechazo, tiempos_hist, clientes_en_sistema_hist
+
+def experimento_mm1():
+    print("--- SIMULACIÓN M/M/1 ---")
+    mu = float(input("Ingrese la tasa de servicio (mu) [ej. 10]: "))
+    porcentaje = float(input("Ingrese el % de tasa de arribo (25, 50, 75, 100, 125): "))
+    lam = mu * (porcentaje / 100.0)
+    capacidad = input("Ingrese capacidad de cola (Deje en blanco para infinita, o ingrese 0, 2, 5, 10, 50): ")
+    capacidad_cola = float('inf') if capacidad == "" else int(capacidad)
+    tiempo_sim = 1000
+    n_corridas = 10
+    
+    L_runs, W_runs, Wq_runs, Prob_rechazo_runs = [], [], [], []
+    
+    # Para graficar el comportamiento a lo largo del tiempo de la última corrida
+    hist_t, hist_L = [], []
+
+    for i in range(n_corridas):
+        L, W, Wq, p_rechazo, t, l_hist = simulacion_mm1(lam, mu, capacidad_cola, tiempo_sim)
+        L_runs.append(L)
+        W_runs.append(W)
+        Wq_runs.append(Wq)
+        Prob_rechazo_runs.append(p_rechazo)
+        if i == n_corridas - 1:
+            hist_t, hist_L = t, l_hist
+
+    print("\n--- RESULTADOS PROMEDIO (10 CORRIDAS) ---")
+    print(f"L (Clientes en sistema): {np.mean(L_runs):.2f}")
+    print(f"W (Tiempo en sistema): {np.mean(W_runs):.2f}")
+    print(f"Wq (Tiempo en cola): {np.mean(Wq_runs):.2f}")
+    if capacidad_cola != float('inf'):
+        print(f"Prob. de denegación de servicio: {np.mean(Prob_rechazo_runs)*100:.2f}%")
+
+    # Gráfica de L en relación al tiempo (para la última corrida)
+    plt.figure(figsize=(10,5))
+    plt.plot(hist_t, hist_L, label='Clientes en Sistema (L)')
+    plt.axhline(y=np.mean(hist_L), color='r', linestyle='--', label='Promedio de Simulación')
+    plt.title(f"Evolución de Clientes en el Sistema en el Tiempo ($\\lambda={lam}, \\mu={mu}$)")
+    plt.xlabel("Tiempo de simulación")
+    plt.ylabel("Cantidad de Clientes")
+    plt.legend()
+    plt.grid()
+
+    capacidad_nombre = "infinita" if capacidad_cola == float('inf') else formatear_valor_archivo(capacidad_cola)
+    nombre_archivo = (
+        f"MM1_mu_{formatear_valor_archivo(mu)}_"
+        f"arribo_{formatear_valor_archivo(porcentaje)}porc_"
+        f"capacidad_{capacidad_nombre}.png"
+    )
+    ruta_grafico = Path(__file__).resolve().parent / nombre_archivo
+    plt.savefig(ruta_grafico, dpi=300, bbox_inches="tight")
+    print(f"Gráfico guardado en: {ruta_grafico}")
+
+    plt.show()
+
+# Para ejecutar en clase, solo debes llamar a la función:
+experimento_mm1()

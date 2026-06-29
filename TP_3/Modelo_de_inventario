@@ -1,0 +1,86 @@
+def simulacion_inventario(demanda_diaria, lead_time, s, Q, costo_orden, costo_mant, costo_faltante, dias_sim):
+    inventario = Q
+    inventario_hist = []
+    dias_hist = []
+    
+    costo_total_ordenes = 0
+    costo_total_mant = 0
+    costo_total_faltantes = 0
+    
+    pedido_en_camino = False
+    dia_llegada_pedido = 0
+
+    for dia in range(dias_sim):
+        # Llega el pedido si corresponde
+        if pedido_en_camino and dia == dia_llegada_pedido:
+            inventario += Q
+            pedido_en_camino = False
+
+        # Demanda diaria (Poisson)
+        demanda = np.random.poisson(demanda_diaria)
+        
+        # Satisfacer demanda
+        if inventario >= demanda:
+            inventario -= demanda
+        else:
+            faltante = demanda - inventario
+            costo_total_faltantes += faltante * costo_faltante
+            inventario = 0 # En este modelo, la demanda insatisfecha se pierde o se cubre al instante sin backlog para simplificar
+
+        # Calcular costo de mantenimiento (fin del día)
+        costo_total_mant += inventario * costo_mant
+        
+        # Revisión continua: lanzar orden si <= s
+        if inventario <= s and not pedido_en_camino:
+            costo_total_ordenes += costo_orden
+            pedido_en_camino = True
+            dia_llegada_pedido = dia + lead_time
+
+        inventario_hist.append(inventario)
+        dias_hist.append(dia)
+
+    costo_total = costo_total_ordenes + costo_total_mant + costo_total_faltantes
+    return costo_total_ordenes, costo_total_mant, costo_total_faltantes, costo_total, dias_hist, inventario_hist
+
+def experimento_inventario():
+    print("--- SIMULACIÓN DE INVENTARIO (s, Q) ---")
+    d_diaria = float(input("Demanda promedio diaria [ej. 5]: "))
+    s = int(input("Punto de reorden (s) [ej. 15]: "))
+    Q = int(input("Cantidad a ordenar (Q) [ej. 30]: "))
+    
+    # Parámetros fijos internos (pueden hacerse inputs también)
+    lead_time = 3
+    c_orden, c_mant, c_faltante = 50, 1, 10
+    dias_sim = 365 # 1 año
+    n_corridas = 10
+    
+    C_ord_runs, C_mant_runs, C_falt_runs, CT_runs = [], [], [], []
+    hist_dias, hist_inv = [], []
+
+    for i in range(n_corridas):
+        co, cm, cf, ct, dias, inv = simulacion_inventario(d_diaria, lead_time, s, Q, c_orden, c_mant, c_faltante, dias_sim)
+        C_ord_runs.append(co)
+        C_mant_runs.append(cm)
+        C_falt_runs.append(cf)
+        CT_runs.append(ct)
+        if i == n_corridas - 1:
+            hist_dias, hist_inv = dias, inv
+
+    print("\n--- RESULTADOS PROMEDIO DE COSTOS (1 AÑO, 10 CORRIDAS) ---")
+    print(f"Costo de Orden: ${np.mean(C_ord_runs):.2f}")
+    print(f"Costo de Mantenimiento: ${np.mean(C_mant_runs):.2f}")
+    print(f"Costo de Faltante: ${np.mean(C_falt_runs):.2f}")
+    print(f"COSTO TOTAL ANUAL: ${np.mean(CT_runs):.2f}")
+
+    # Gráfica de inventario
+    plt.figure(figsize=(12,5))
+    plt.plot(hist_dias[:100], hist_inv[:100], drawstyle='steps-post') # Mostrar primeros 100 días
+    plt.axhline(y=s, color='r', linestyle='--', label='Punto de reorden (s)')
+    plt.title("Nivel de Inventario a lo largo del tiempo (Primeros 100 días)")
+    plt.xlabel("Días")
+    plt.ylabel("Nivel de Inventario")
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+# experimento_inventario()
