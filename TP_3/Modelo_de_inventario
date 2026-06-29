@@ -1,3 +1,10 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+def formatear_valor_archivo(valor):
+    return f"{valor:g}".replace(".", "p")
+
 def simulacion_inventario(demanda_diaria, lead_time, s, Q, costo_orden, costo_mant, costo_faltante, dias_sim):
     inventario = Q
     inventario_hist = []
@@ -81,6 +88,16 @@ def experimento_inventario():
     plt.ylabel("Nivel de Inventario")
     plt.legend()
     plt.grid()
+
+    nombre_archivo = (
+        f"Inventario_demanda_{formatear_valor_archivo(d_diaria)}_"
+        f"s_{formatear_valor_archivo(s)}_"
+        f"Q_{formatear_valor_archivo(Q)}.png"
+    )
+    ruta_grafico = Path(__file__).resolve().parent / nombre_archivo
+    plt.savefig(ruta_grafico, dpi=300, bbox_inches="tight")
+    print(f"Gráfico guardado en: {ruta_grafico}")
+
     plt.show()
 
-# experimento_inventario()
+experimento_inventario()
