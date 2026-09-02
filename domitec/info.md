@@ -1,129 +1,92 @@
-Se ha creado y ejecutado con éxito el script integral de análisis de demanda [`domitec_demand_analysis.py`](file:///c:/Users/octab/Developer/projects/SimulacionUTN/domitec/domitec_demand_analysis.py) dentro del entorno virtual `.venv`.
+# Análisis de Demanda y Parámetros de Simulación - Domitec S.A.
 
-A partir de los **23.689 registros históricos** (enero 2025 a agosto 2026, 20 meses continuos) y un volumen total de **5.853.595 unidades demandadas**, se presentan los resultados clave estructurados para el diseño del modelo en **AnyLogic**.
-
----
-
-### 📌 Resumen Ejecutivo de Métricas Globales
-
-* **Volumen Total Demandado (Pedidos):** 5.853.595 unidades (promedio mensual: 292.680 un/mes).
-* **Volumen Total Despachado:** 5.018.050 unidades.
-* **Fill Rate Global (Nivel de Servicio):** **85,73%**.
-* **Volumen Cancelado (Venta Perdida):** 589.511 unidades (**10,07%** de los pedidos).
-* **Volumen Pendiente:** 246.034 unidades (**4,20%**).
-* **Concentración HHI:** 1.269,4 (concentración moderada-alta en pocos mayoristas).
+Este documento contiene la información procesada y los parámetros estadísticos requeridos para el modelo de simulación en **AnyLogic** de la cadena de suministro y efecto látigo de **Domitec S.A.** (20 meses históricos: enero 2025 – agosto 2026).
 
 ---
 
-## 1. Clasificación y Segmentación de Clientes
+## 1. Alcance y Catálogo de Productos
 
-Se analizaron los **437 clientes activos** bajo clasificación **ABC de Pareto**, métricas de regularidad (**RFM**), variabilidad de demanda ($CV = \sigma / \mu$) y tasa de cumplimiento (**Fill Rate**).
+El catálogo activo para la simulación se compone estrictamente de **6 productos consolidados**:
 
-### A. Clasificación ABC de Clientes
+1. **Lavandina**: Unificación de *Lavandina Común* y *Lavandina Concentrada*.
+2. **Líquido Desinfectante**: Unificación de *Líquido Desinfectante* y *Líquido Limpiador*.
+3. **Lavavajilla**
+4. **Líquido Lavar Ropa**
+5. **Suavizante**
+6. **Detergente Concentrado**
 
-| Clase ABC | Cantidad de Clientes | % de Clientes | % Volumen Demandado | Comportamiento Típico |
-| :---: | :---: | :---: | :---: | :--- |
-| **A** | **69** | 15,8% | **79,8%** | Cuentas clave y grandes distribuidores con compras recurrentes. |
-| **B** | **146** | 33,4% | **15,2%** | Distribuidores regionales medianos con pedidos mensuales regulares. |
-| **C** | **222** | 50,8% | **5,0%** | Minoristas y autoservicios chicos con pedidos intermitentes/esporádicos. |
-
-### B. Top 10 Clientes y Asignación de Roles en AnyLogic
-
-| # | Cliente | Canal (`VentasXnegocio`) | Pedidos Totales | Share Vol. | Share Acum. | Fill Rate | CV Demanda | Rol Arquitectónico Recomendado en AnyLogic |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **MAXICONSUMO S.A.** | MAXICONSUMO | 1.997.646 | **34,13%** | 34,13% | 85,7% | 0,399 | **Agente Individual Clave** (*Key Account Agent*) |
-| 2 | **SUPERM. MAYORISTAS MAKRO** | GRANDES CLIENTES | 459.053 | **7,84%** | 41,97% | 69,2% | 0,639 | **Agente Individual Clave** (*Key Account Agent*) |
-| 3 | **TREOLAND SA** | GRANDES CLIENTES | 247.760 | **4,23%** | 46,20% | 67,4% | 0,968 | **Agente Individual Clave** (*Key Account Agent*) |
-| 4 | **INC S. A. (Carrefour)** | GRANDES CLIENTES | 92.391 | **1,58%** | 47,78% | 74,8% | 1,110 | Población de Distribuidores Mayores |
-| 5 | **GRUPO LEON SA** | RED PROPIA | 77.163 | **1,32%** | 49,10% | 81,3% | 0,446 | Población de Distribuidores Mayores |
-| 6 | **EL CONDOR SRL** | RED PROPIA | 75.356 | **1,29%** | 50,39% | 89,7% | 0,498 | Población de Distribuidores Mayores |
-| 7 | **BRUSA S.R.L.** | RED PROPIA | 72.676 | **1,24%** | 51,63% | 94,1% | 0,388 | Población de Distribuidores Mayores |
-| 8 | **MARIANO IDELIO SANTOS S.R.L.** | RED PROPIA | 67.450 | **1,15%** | 52,78% | 88,4% | 0,800 | Población de Distribuidores Mayores |
-| 9 | **SCHAFFER ALFREDO** | RED PROPIA | 67.310 | **1,15%** | 53,93% | 90,5% | 0,679 | Población de Distribuidores Mayores |
-| 10 | **DEL SUR SRL** | RED PROPIA | 60.544 | **1,03%** | 54,96% | 92,2% | 0,676 | Población de Distribuidores Mayores |
-
-> **Observación Clave para AnyLogic:**
->
-> * **Top 1:** Solo Maxiconsumo representa más de **1/3 de toda la demanda** de la fábrica.
-> * **Top 5:** Concentran el **49,1%** de los pedidos.
-> * **Fill Rate bajo en Grandes Cuentas:** Makro (69,2%) y Treoland (67,4%) sufrieron las mayores tasas de cancelación/pérdida de venta por quiebre de stock en planta.
+> [!NOTE]
+> Los productos *Promopack* y *Líquido Bactericida* fueron excluidos. El volumen total demandado analizado es de **5.496.539 unidades** (promedio mensual total de **274.827 unidades/mes**).
 
 ---
 
-## 2. Agrupación y Clasificación de Productos
+## 2. Resumen General por Producto
 
-El catálogo activo cuenta con **10 Rubros (Familias)** y **29 SKUs específicos** (combinación Rubro + Presentación).
-
-### A. Agrupación por Familias de Productos (Rubros)
-
-| # | Rubro / Familia | Pedidos Totales | Share Vol. | Share Acum. | Fill Rate | Cancelación | CV Demanda |
-| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **LAVANDINA COMUN** | 1.362.066 | **23,27%** | 23,27% | 91,7% | 4,89% | 0,248 |
-| 2 | **LIQUIDO DESINFECTANTE** | 1.249.393 | **21,34%** | 44,61% | 82,1% | 14,55% | 0,334 |
-| 3 | **LAVAVAJILLA** | 1.020.841 | **17,44%** | 62,05% | 87,3% | 7,57% | 0,302 |
-| 4 | **LAVANDINA CONCENTRADA** | 740.438 | **12,65%** | 74,70% | 87,0% | 8,60% | 0,390 |
-| 5 | **LIQUIDO LAVAR ROPA** | 434.161 | **7,42%** | 82,12% | 81,3% | 11,34% | 0,428 |
-| 6 | **SUAVIZANTE** | 360.281 | **6,15%** | 88,27% | 79,5% | 14,56% | 0,299 |
-| 7 | **PROMOPACK** | 355.656 | **6,08%** | 94,35% | 86,9% | 11,53% | 0,311 |
-| 8 | **DETERGENTE CONCENTRADO** | 177.218 | **3,03%** | 97,38% | 86,8% | 6,91% | 0,510 |
-| 9 | **LIQUIDO LIMPIADOR** | 152.141 | **2,60%** | 99,98% | 68,7% | 29,61% | 0,606 |
-| 10 | **LIQUIDO BACTERICIDA** | 1.400 | **0,02%** | 100,00% | 90,4% | 9,64% | 3,078 |
-
-### B. Matriz ABC - XYZ de SKUs (Volumen vs. Variabilidad)
-
-* **X ($CV < 0.25$):** Demanda muy estable, ideal para Make-to-Stock (MTS) continuo.
-* **Y ($0.25 \le CV < 0.50$):** Demanda con variabilidad moderada / estacional.
-* **Z ($CV \ge 0.50$):** Demanda errática / compras en bultos esporádicos.
-
-| Matriz | Cant. SKUs | Share Vol. | Fill Rate Prom. | Estrategia de Simulación / Producción |
-| :---: | :---: | :---: | :---: | :--- |
-| **AX** | 1 | **15,8%** | 92,9% | Producto insignia base: Stock de seguridad bajo, flujo continuo. |
-| **AY** | 8 | **60,9%** | 86,0% | Núcleo de facturación: Requiere pronóstico suavizado y buffer dinámico. |
-| **BX / BY** | 7 | **15,6%** | 82,1% | Rotación media: Reposición periódica $(s, S)$ en AnyLogic. |
-| **BZ / CZ** | 12 | **7,3%** | 71,3% | Colas de catálogo: Make-to-Order (MTO) o lotes bajo pedido mínimo. |
-
-### C. Top 6 SKUs y Selección de los 2-3 Productos para AnyLogic
-
-| SKU (Producto + Presentación) | Total Pedidos | Share | Matriz | CV | Recomendación para el Modelo AnyLogic |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| **`LAVANDINA COMUN - 12X1 LT`** | 925.810 | **15,82%** | **AX** | **0,242** | **Producto 1 (Imprescindible):** Alta rotación, máxima estabilidad ($CV=0.24$), producto insignia. |
-| **`LAVAVAJILLA - 15X750 CC`** | 896.685 | **15,32%** | **AY** | **0,329** | **Producto 2 (Opción A):** Alta rotación con estacionalidad moderada. |
-| **`LIQUIDO DESINFECTANTE - 15X900 CC`** | 867.751 | **14,82%** | **AY** | **0,373** | **Producto 2 (Opción B):** Alta rotación, sensible a picos de demanda y quiebres. |
-| **`LAVANDINA CONCENTRADA - 12X1 LT`** | 396.622 | **6,78%** | **AY** | **0,482** | **Producto 3 (Contraste):** Rotación media-alta con variabilidad cercana a Z ($CV=0.48$). |
-| **`LIQUIDO DESINFECTANTE - 3X4.5 LT`** | 246.295 | **4,21%** | **AY** | **0,369** | **Alternativa Bidón:** Formato mayorista / institucional. |
+| # | Producto | Pedidos Totales (20 Meses) | Share Demanda (%) | Media Mensual ($\mu$) | Desv. Estándar ($s$) | Coef. Variación ($CV$) | Nivel de Servicio (Fill Rate) |
+| :-: | :--- | :-: | :-: | :-: | :-: | :-: | :-: |
+| 1 | **Lavandina** | 2.102.504 un. | 38,25% | 105.125,2 un. | 29.041,3 un. | 0,276 | 90,06% |
+| 2 | **Líquido Desinfectante** | 1.401.534 un. | 25,50% | 70.076,7 un. | 21.967,0 un. | 0,313 | 80,61% |
+| 3 | **Lavavajilla** | 1.020.841 un. | 18,57% | 51.042,1 un. | 15.414,9 un. | 0,302 | 87,30% |
+| 4 | **Líquido Lavar Ropa** | 434.161 un. | 7,90% | 21.708,1 un. | 9.296,4 un. | 0,428 | 81,29% |
+| 5 | **Suavizante** | 360.281 un. | 6,55% | 18.014,1 un. | 5.378,0 un. | 0,299 | 79,53% |
+| 6 | **Detergente Concentrado** | 177.218 un. | 3,22% | 8.860,9 un. | 4.521,2 un. | 0,510 | 86,78% |
+| - | **TOTAL PLANTA** | **5.496.539 un.** | **100,00%** | **274.827,0 un.** | **60.834,1 un.** | **0,221** | **85,65%** |
 
 ---
 
-## 3. Otras Métricas Clave y Parámetros para AnyLogic
+## 3. Demanda Mensual para AnyLogic por Canal y Producto (18 Perfiles)
 
-### A. Validación Empírica del Efecto Látigo por Canal
+Parámetros calculados sobre los 20 períodos para programar los generadores de demanda de los 3 segmentos de clientes (**Maxiconsumo**, **Grandes Clientes** y **Red Propia**):
 
-Al comparar la variabilidad mensual ($CV$) de la demanda agregada según el tipo de cliente se observa el fenómeno descripto en el [`context.md`](file:///c:/Users/octab/Developer/projects/SimulacionUTN/domitec/context.md):
+| Perfil de Cliente | Producto | Media Mensual ($\mu$) | Desv. Est. Pob. ($\sigma$) | Desv. Est. Muestral ($s$) | CV Demanda | Total Demandado (20 Meses) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Maxiconsumo** | Lavandina | 37.515,80 | 21.758,34 | 22.323,58 | 0,5800 | 750.316 un. |
+| **Maxiconsumo** | Líquido Desinfectante | 24.685,75 | 16.016,04 | 16.432,11 | 0,6488 | 493.715 un. |
+| **Maxiconsumo** | Lavavajilla | 20.414,40 | 11.803,80 | 12.110,44 | 0,5782 | 408.288 un. |
+| **Maxiconsumo** | Líquido Lavar Ropa | 8.735,35 | 6.992,12 | 7.173,76 | 0,8004 | 174.707 un. |
+| **Maxiconsumo** | Suavizante | 7.061,90 | 4.577,44 | 4.696,36 | 0,6482 | 141.238 un. |
+| **Maxiconsumo** | Detergente Concentrado | 4.182,95 | 3.557,61 | 3.650,03 | 0,8505 | 83.659 un. |
+| **Grandes Clientes** | Lavandina | 12.293,90 | 5.195,27 | 5.330,24 | 0,4226 | 245.878 un. |
+| **Grandes Clientes** | Líquido Desinfectante | 18.271,05 | 10.749,78 | 11.029,05 | 0,5884 | 365.421 un. |
+| **Grandes Clientes** | Lavavajilla | 8.325,95 | 4.317,54 | 4.429,70 | 0,5186 | 166.519 un. |
+| **Grandes Clientes** | Líquido Lavar Ropa | 1.249,50 | 940,44 | 964,87 | 0,7527 | 24.990 un. |
+| **Grandes Clientes** | Suavizante | 2.064,95 | 1.577,46 | 1.618,44 | 0,7639 | 41.299 un. |
+| **Grandes Clientes** | Detergente Concentrado | 0,00 | 0,00 | 0,00 | 0,0000 | 0 un. |
+| **Red Propia** | Lavandina | 55.315,50 | 13.159,15 | 13.501,00 | 0,2379 | 1.106.310 un. |
+| **Red Propia** | Líquido Desinfectante | 27.119,90 | 7.257,99 | 7.446,54 | 0,2676 | 542.398 un. |
+| **Red Propia** | Lavavajilla | 22.301,70 | 5.008,72 | 5.138,84 | 0,2246 | 446.034 un. |
+| **Red Propia** | Líquido Lavar Ropa | 11.723,20 | 4.299,75 | 4.411,46 | 0,3668 | 234.464 un. |
+| **Red Propia** | Suavizante | 8.887,20 | 2.412,51 | 2.475,19 | 0,2715 | 177.744 un. |
+| **Red Propia** | Detergente Concentrado | 4.677,95 | 2.108,59 | 2.163,36 | 0,4507 | 93.559 un. |
 
-* **Red Propia (431 clientes medianos/chicos agrupados):** **$CV = 0,241$** *(Efecto agregación de demanda suaviza la varianza total)*.
-* **Maxiconsumo (1 gran distribuidor nacional):** **$CV = 0,399$**.
-* **Grandes Clientes (Makro, Treoland, Carrefour en pedidos en bloque):** **$CV = 0,655$** *(Máxima volatilidad y distorsión hacia la fábrica)*.
+---
 
-### B. Ajuste de Distribuciones Estocásticas para AnyLogic
+## 4. Distribuciones Estocásticas y Sintaxis AnyLogic
 
-Parámetros directos para programar los bloques de generación estocástica de pedidos en AnyLogic:
+Expresiones listas para copiar en los bloques de demanda (`Source`, `Uniform`, `Normal`, `Triangular`) en AnyLogic:
 
-| Entidad / Producto | Nivel | Media ($\mu$) | Desv. ($\sigma$) | Distribución Ajustada | Sintaxis Lista para AnyLogic |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **Demanda Total Fábrica** | Mensual Global | 292.680 un. | 64.472 un. | Normal / Triangular | `normal(292679.8, 64472.1)` o `triangular(162976, 298330, 420686)` |
-| **`LAVANDINA COMUN - 12X1 LT`** | Mensual SKU | 46.291 un. | 11.203 un. | Normal | `normal(46290.5, 11203.2)` |
-| **`LAVAVAJILLA - 15X750 CC`** | Mensual SKU | 44.834 un. | 14.767 un. | Normal / Triangular | `normal(44834.2, 14766.9)` |
-| **`LIQ. DESINFECTANTE - 15X900 CC`** | Mensual SKU | 43.388 un. | 16.187 un. | Triangular | `triangular(10829, 43584, 72910)` |
-| **`LAVANDINA CONC. - 12X1 LT`** | Mensual SKU | 19.831 un. | 9.567 un. | Triangular / Lognormal | `triangular(6591, 18867, 44510)` |
+| Producto / Nivel | Media ($\mu$) | Desv. Muestral ($s$) | Distribución | Sintaxis AnyLogic Recomendada | Capacidad Asignada Sugerida (85% Util.) |
+| :--- | :---: | :---: | :---: | :--- | :---: |
+| **Demanda Global Planta** | 274.827 un. | 60.834 un. | Normal / Triangular | `normal(274827.0, 60834.1)` | **~316.000 un/mes** |
+| **Lavandina** | 105.125 un. | 29.041 un. | Normal | `normal(105125.2, 29041.3)` | **~120.900 un/mes** |
+| **Líquido Desinfectante** | 70.077 un. | 21.967 un. | Normal | `normal(70076.7, 21967.0)` | **~80.600 un/mes** |
+| **Lavavajilla** | 51.042 un. | 15.415 un. | Normal | `normal(51042.1, 15414.9)` | **~58.700 un/mes** |
+| **Líquido Lavar Ropa** | 21.708 un. | 9.296 un. | Normal | `normal(21708.0, 9296.4)` | **~25.000 un/mes** |
+| **Suavizante** | 18.014 un. | 5.378 un. | Normal | `normal(18014.0, 5378.0)` | **~20.700 un/mes** |
+| **Detergente Concentrado** | 8.861 un. | 4.521 un. | Normal | `normal(8860.9, 4521.2)` | **~10.200 un/mes** |
 
-### C. Capacidad Efectiva de Producción y Buffers Sugeridos
+---
 
-Para evitar subdimensionar o sobredimensionar la planta `DomitecPlant`:
+## 5. Variabilidad por Canal y Validación del Efecto Látigo
 
-* **Capacidad promedio sugerida (factor de utilización 85%):**
-  * Demanda global: **~336.500 unidades/mes**.
-  * Línea Lavandina 1L: **~53.200 unidades/mes**.
-  * Línea Lavavajilla 750cc: **~51.500 unidades/mes**.
-  * Línea Desinfectante 900cc: **~49.900 unidades/mes**.
-* **Stock de Seguridad Sugerido ($z=1.65$ para 95% de nivel de servicio):**
-  * Para $L = 2$ semanas: $SS = 1.65 \times \sigma_{\text{semanal}} \approx 9.200$ un. para Lavandina 1L.
+* **Red Propia (428 clientes agregados):** $CV = 0,238$ $\rightarrow$ La suma de múltiples clientes chicos/medianos estabiliza la demanda agregada hacia la fábrica.
+* **Maxiconsumo (1 gran cliente mayorista):** $CV = 0,384$ $\rightarrow$ Pedidos periódicos en lotes mayores generan variabilidad media.
+* **Grandes Clientes (Cadenas mayoristas: Makro, Treoland, Carrefour):** $CV = 0,494$ $\rightarrow$ Volatilidad alta y tasa de pérdida de venta / cancelación del 26,77% por quiebres de stock.
+
+---
+
+## 6. Archivos de Datos Relacionados
+
+* [`demanda_mensual_anylogic_perfil_producto.csv`](file:///c:/Users/octab/Developer/Projects/SimulacionUTN/domitec/output/demanda_mensual_anylogic_perfil_producto.csv): Tabla de datos en CSV para importar a AnyLogic.
+* [`resumen_productos_familias.csv`](file:///c:/Users/octab/Developer/Projects/SimulacionUTN/domitec/output/resumen_productos_familias.csv): Resumen de las 6 familias.
+* [`resumen_canales_simplificado.csv`](file:///c:/Users/octab/Developer/Projects/SimulacionUTN/domitec/output/resumen_canales_simplificado.csv): Resumen por canal comercial.

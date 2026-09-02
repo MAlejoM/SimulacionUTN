@@ -1,15 +1,25 @@
 """
 ================================================================================
-ANÁLISIS DE DEMANDA - DOMITEC S.A.
+ANÁLISIS INTEGRAL DE DEMANDA - DOMITEC S.A.
 PROYECTO DE SIMULACIÓN EN ANYLOGIC (EFECTO LÁTIGO & CADENA DE SUMINISTRO)
 ================================================================================
 Este script realiza el análisis integral de demanda a partir de los datos reales
-de Domitec (2025 - 2026), con los siguientes objetivos:
-1. Clasificar y segmentar clientes (ABC, RFM, Variabilidad, Concentración, Nivel de Servicio).
-2. Agrupar y clasificar productos (Rubros, ABC, XYZ por variabilidad, Matriz ABC-XYZ).
-3. Obtener métricas clave para AnyLogic (Ajuste de distribuciones estocásticas,
-   análisis de variabilidad por canal / efecto látigo, estacionalidad y capacidad).
-4. Generar reportes CSV y gráficos visuales de alta calidad.
+de Domitec (2025 - 2026), considerando la taxonomía actualizada:
+- 6 Familias Consolidadas:
+  1. Lavandina (Común + Concentrada)
+  2. Líquido Desinfectante / Limpiador (Desinfectante + Limpiador)
+  3. Lavavajilla
+  4. Líquido Lavar Ropa
+  5. Suavizante
+  6. Detergente Concentrado
+- Exclusión de: Promopack y Líquido Bactericida.
+- 3 Canales de Clientes: Maxiconsumo, Grandes Clientes, Red Propia.
+
+Genera:
+1. Clasificación y segmentación de clientes (ABC, RFM, Variabilidad, Concentración HHI, Nivel de Servicio).
+2. Agrupación y clasificación de productos (6 familias, SKUs, Matriz ABC-XYZ).
+3. Parámetros para AnyLogic (Ajuste de distribuciones estocásticas, variabilidad por canal / efecto látigo, capacidad).
+4. Reportes CSV detallados y gráficos visuales de alta calidad.
 ================================================================================
 """
 
@@ -22,7 +32,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import seaborn as sns
 
-# Configuración de estilo de visualización
+# Configuración de estilo visual
 plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
 plt.rcParams['font.sans-serif'] = 'DejaVu Sans'
 plt.rcParams['font.family'] = 'sans-serif'
@@ -79,10 +89,34 @@ def load_and_clean_data(file_path):
     df['Pct_Perdida_Vta_num'] = df['Pct_Perdida_Vta'].apply(parse_spanish_pct)
     
     # Limpieza de textos
-    text_cols = ['VentasXnegocio', 'Cliente', 'RubroDes', 'PresentacionDes', 'Mes']
+    text_cols = ['VentasXnegocio', 'Cliente', 'RubroDes', 'PresentacionDes', 'Mes', 'Anio']
     for col in text_cols:
         df[col] = df[col].astype(str).str.strip()
         
+    # Mapeo y consolidación de Productos
+    rubro_map = {
+        'LAVANDINA COMUN': 'Lavandina',
+        'LAVANDINA CONCENTRADA': 'Lavandina',
+        'LIQUIDO DESINFECTANTE': 'Líquido Desinfectante / Limpiador',
+        'LIQUIDO LIMPIADOR': 'Líquido Desinfectante / Limpiador',
+        'LAVAVAJILLA': 'Lavavajilla',
+        'LIQUIDO LAVAR ROPA': 'Líquido Lavar Ropa',
+        'SUAVIZANTE': 'Suavizante',
+        'DETERGENTE CONCENTRADO': 'Detergente Concentrado'
+    }
+    
+    # Excluir Promopack y Líquido Bactericida
+    df = df[df['RubroDes'].isin(rubro_map.keys())].copy()
+    df['Producto'] = df['RubroDes'].map(rubro_map)
+    
+    # Mapeo de Canales Comerciales
+    canal_map = {
+        'MAXICONSUMO': 'Maxiconsumo',
+        'GRANDES CLIENTES': 'Grandes Clientes',
+        'RED PROPIA': 'Red Propia'
+    }
+    df['Canal'] = df['VentasXnegocio'].map(canal_map)
+    
     # Mapeo temporal
     meses_map = {
         'Ene.': 1, 'Feb.': 2, 'Mar.': 3, 'Abr.': 4, 'May.': 5, 'Jun.': 6,
@@ -91,14 +125,13 @@ def load_and_clean_data(file_path):
     df['Mes_num'] = df['Mes'].map(meses_map)
     df['Anio_num'] = df['Anio'].astype(int)
     df['Periodo'] = df['Anio_num'].astype(str) + '-' + df['Mes_num'].astype(str).str.zfill(2)
-    df['Producto_SKU'] = df['RubroDes'] + " - " + df['PresentacionDes']
+    df['Producto_SKU'] = df['Producto'] + " - " + df['PresentacionDes']
     
-    # Crear un índice cronológico ordenado (1 a 20)
     periodos_unicos = sorted(df['Periodo'].unique())
     periodo_to_idx = {p: i+1 for i, p in enumerate(periodos_unicos)}
     df['Periodo_Idx'] = df['Periodo'].map(periodo_to_idx)
     
-    print(f"    - Registros cargados: {len(df):,}")
+    print(f"    - Registros filtrados incluidos: {len(df):,}")
     print(f"    - Período temporal: {periodos_unicos[0]} a {periodos_unicos[-1]} ({len(periodos_unicos)} meses)")
     print(f"    - Volumen Total Pedido: {df['Pedidos'].sum():,}")
     print(f"    - Volumen Total Despachado: {df['Despachadas'].sum():,}")
@@ -113,8 +146,7 @@ def load_and_clean_data(file_path):
 def analyze_customers(df, total_periodos):
     print("\n>>> 2. Ejecutando Clasificación y Análisis de Clientes...")
     
-    # Agregación por Cliente y Canal
-    cli_summary = df.groupby(['Cliente', 'VentasXnegocio']).agg(
+    cli_summary = df.groupby(['Cliente', 'Canal']).agg(
         Total_Pedidos=('Pedidos', 'sum'),
         Total_Despachadas=('Despachadas', 'sum'),
         Total_Cancelado=('Cancelado', 'sum'),
@@ -124,10 +156,8 @@ def analyze_customers(df, total_periodos):
         Cant_SKUs_Distintos=('Producto_SKU', 'nunique')
     ).reset_index()
     
-    # Métricas mensuales por cliente para variabilidad (CV)
     cli_mensual = df.groupby(['Cliente', 'Periodo'])['Pedidos'].sum().unstack(fill_value=0)
     
-    # Calcular métricas estadísticas mensuales por cliente sobre los 20 meses
     cli_stats = pd.DataFrame({
         'Media_Mensual': cli_mensual.mean(axis=1),
         'Std_Mensual': cli_mensual.std(axis=1),
@@ -144,7 +174,6 @@ def analyze_customers(df, total_periodos):
     
     cli_merged = pd.merge(cli_summary, cli_stats, on='Cliente')
     
-    # Métricas de Servicio
     cli_merged['Fill_Rate'] = np.where(
         cli_merged['Total_Pedidos'] > 0,
         cli_merged['Total_Despachadas'] / cli_merged['Total_Pedidos'],
@@ -162,7 +191,7 @@ def analyze_customers(df, total_periodos):
         0.0
     )
     
-    # Clasificación ABC por Volumen de Pedidos
+    # Clasificación ABC de Clientes
     cli_merged = cli_merged.sort_values(by='Total_Pedidos', ascending=False).reset_index(drop=True)
     cli_merged['Share_Volumen'] = (cli_merged['Total_Pedidos'] / cli_merged['Total_Pedidos'].sum()) * 100
     cli_merged['Share_Acumulado'] = cli_merged['Share_Volumen'].cumsum()
@@ -177,7 +206,6 @@ def analyze_customers(df, total_periodos):
             
     cli_merged['Clase_ABC'] = cli_merged['Share_Acumulado'].apply(clasificar_abc)
     
-    # Clasificación de Estabilidad de Demanda (Regularidad)
     def clasificar_estabilidad(cv):
         if cv < 0.5:
             return 'Demanda Estable (Predictible)'
@@ -188,11 +216,11 @@ def analyze_customers(df, total_periodos):
             
     cli_merged['Tipo_Variabilidad'] = cli_merged['CV_Demanda'].apply(clasificar_estabilidad)
     
-    # Recomendación AnyLogic
+    # Recomendación de Roles AnyLogic
     def recomendar_anylogic(row):
         if row['Total_Pedidos'] > 200000 or row['Cliente'] in ['MAXICONSUMO S.A.', 'SUPERMERCADOS MAYORISTAS MAKRO', 'TREOLAND SA']:
             return 'Agente Individual Clave (Key Account Agent)'
-        elif row['Clase_ABC'] == 'A' or (row['VentasXnegocio'] == 'GRANDES CLIENTES'):
+        elif row['Clase_ABC'] == 'A' or (row['Canal'] == 'Grandes Clientes'):
             return 'Población Distribuidores Mayores (Individual Wholesaler Agents)'
         elif row['Clase_ABC'] == 'B':
             return 'Población Distribuidores Regionales (Regional Distributor Agents)'
@@ -200,12 +228,10 @@ def analyze_customers(df, total_periodos):
             return 'Canal Agregado / Población Retailers (Aggregated Minor Retailers)'
             
     cli_merged['Rol_AnyLogic_Recomendado'] = cli_merged.apply(recomendar_anylogic, axis=1)
-    
-    # Guardar reporte
     cli_merged.to_csv(os.path.join(OUTPUT_DIR, "01_clasificacion_clientes_abc_rfm.csv"), index=False, sep=';', decimal=',')
     
-    # Resumen por Canal de Venta
-    canal_summary = df.groupby('VentasXnegocio').agg(
+    # Resumen por Canal
+    canal_summary = df.groupby('Canal').agg(
         Total_Pedidos=('Pedidos', 'sum'),
         Total_Despachadas=('Despachadas', 'sum'),
         Total_Cancelado=('Cancelado', 'sum'),
@@ -218,13 +244,13 @@ def analyze_customers(df, total_periodos):
     canal_summary['Fill_Rate'] = (canal_summary['Total_Despachadas'] / canal_summary['Total_Pedidos']) * 100
     canal_summary['Tasa_Cancelacion'] = (canal_summary['Total_Cancelado'] / canal_summary['Total_Pedidos']) * 100
     
-    # Variabilidad agregada por canal mes a mes
-    canal_mensual = df.groupby(['VentasXnegocio', 'Periodo'])['Pedidos'].sum().unstack(fill_value=0)
+    canal_mensual = df.groupby(['Canal', 'Periodo'])['Pedidos'].sum().unstack(fill_value=0)
     canal_cv = (canal_mensual.std(axis=1) / canal_mensual.mean(axis=1)).reset_index(name='CV_Demanda_Agregada')
-    canal_summary = pd.merge(canal_summary, canal_cv, on='VentasXnegocio')
+    canal_summary = pd.merge(canal_summary, canal_cv, on='Canal')
+    canal_summary = canal_summary.sort_values(by='Total_Pedidos', ascending=False)
     canal_summary.to_csv(os.path.join(OUTPUT_DIR, "02_resumen_canales.csv"), index=False, sep=';', decimal=',')
     
-    # Métricas de Concentración
+    # Concentración
     top1_share = cli_merged.iloc[0]['Share_Volumen']
     top5_share = cli_merged.iloc[:5]['Share_Volumen'].sum()
     top10_share = cli_merged.iloc[:10]['Share_Volumen'].sum()
@@ -236,20 +262,20 @@ def analyze_customers(df, total_periodos):
         cnt = abc_counts.get(cat, 0)
         vol_pct = cli_merged[cli_merged['Clase_ABC'] == cat]['Share_Volumen'].sum()
         print(f"  Clase {cat}: {cnt:3d} clientes ({cnt/len(cli_merged)*100:5.1f}%) -> {vol_pct:5.1f}% del volumen total")
-    print(f"  Concentración HHI: {hhi:.1f} (Altamente concentrado > 1500)")
+    print(f"  Concentración HHI: {hhi:.1f}")
     print(f"  Top 1 Share ({cli_merged.iloc[0]['Cliente']}): {top1_share:.2f}%")
     print(f"  Top 5 Share: {top5_share:.2f}% | Top 10 Share: {top10_share:.2f}%")
     
     return cli_merged, canal_summary, cli_mensual
 
 # ------------------------------------------------------------------------------
-# 3. AGRUPACIÓN Y CLASIFICACIÓN DE PRODUCTOS
+# 3. AGRUPACIÓN Y CLASIFICACIÓN DE PRODUCTOS (6 FAMILIAS & SKUS)
 # ------------------------------------------------------------------------------
 def analyze_products(df, total_periodos):
-    print("\n>>> 3. Ejecutando Agrupación y Clasificación de Productos...")
+    print("\n>>> 3. Ejecutando Agrupación y Clasificación de Productos (6 Familias Consolidadas)...")
     
-    # 3.1 Agrupación por Rubro (Familia)
-    rubro_summary = df.groupby('RubroDes').agg(
+    # 3.1 Agrupación por Familia / Producto Consolidado
+    prod_summary = df.groupby('Producto').agg(
         Total_Pedidos=('Pedidos', 'sum'),
         Total_Despachadas=('Despachadas', 'sum'),
         Total_Cancelado=('Cancelado', 'sum'),
@@ -259,20 +285,28 @@ def analyze_products(df, total_periodos):
         Lineas_Transacciones=('Pedidos', 'count')
     ).reset_index()
     
-    rubro_summary['Share_Volumen'] = (rubro_summary['Total_Pedidos'] / rubro_summary['Total_Pedidos'].sum()) * 100
-    rubro_summary = rubro_summary.sort_values(by='Total_Pedidos', ascending=False).reset_index(drop=True)
-    rubro_summary['Share_Acumulado'] = rubro_summary['Share_Volumen'].cumsum()
-    rubro_summary['Fill_Rate'] = (rubro_summary['Total_Despachadas'] / rubro_summary['Total_Pedidos']) * 100
-    rubro_summary['Tasa_Cancelacion'] = (rubro_summary['Total_Cancelado'] / rubro_summary['Total_Pedidos']) * 100
+    prod_summary['Share_Volumen'] = (prod_summary['Total_Pedidos'] / prod_summary['Total_Pedidos'].sum()) * 100
+    prod_summary = prod_summary.sort_values(by='Total_Pedidos', ascending=False).reset_index(drop=True)
+    prod_summary['Share_Acumulado'] = prod_summary['Share_Volumen'].cumsum()
+    prod_summary['Fill_Rate'] = (prod_summary['Total_Despachadas'] / prod_summary['Total_Pedidos']) * 100
+    prod_summary['Tasa_Cancelacion'] = (prod_summary['Total_Cancelado'] / prod_summary['Total_Pedidos']) * 100
     
-    # Variabilidad mensual por rubro
-    rubro_mensual = df.groupby(['RubroDes', 'Periodo'])['Pedidos'].sum().unstack(fill_value=0)
-    rubro_cv = (rubro_mensual.std(axis=1) / rubro_mensual.mean(axis=1)).reset_index(name='CV_Demanda')
-    rubro_summary = pd.merge(rubro_summary, rubro_cv, on='RubroDes')
-    rubro_summary.to_csv(os.path.join(OUTPUT_DIR, "03_agrupacion_rubros.csv"), index=False, sep=';', decimal=',')
+    prod_mensual = df.groupby(['Producto', 'Periodo'])['Pedidos'].sum().unstack(fill_value=0)
+    prod_cv = (prod_mensual.std(axis=1) / prod_mensual.mean(axis=1)).reset_index(name='CV_Demanda')
+    prod_summary = pd.merge(prod_summary, prod_cv, on='Producto')
     
-    # 3.2 Clasificación por SKU (Rubro + Presentación)
-    sku_summary = df.groupby(['Producto_SKU', 'RubroDes', 'PresentacionDes']).agg(
+    def abc_prod(acum):
+        if acum <= 80.0:
+            return 'A'
+        elif acum <= 95.0:
+            return 'B'
+        else:
+            return 'C'
+    prod_summary['Clase_ABC'] = prod_summary['Share_Acumulado'].apply(abc_prod)
+    prod_summary.to_csv(os.path.join(OUTPUT_DIR, "03_agrupacion_rubros.csv"), index=False, sep=';', decimal=',')
+    
+    # 3.2 Clasificación por SKU (Producto + Presentación)
+    sku_summary = df.groupby(['Producto_SKU', 'Producto', 'PresentacionDes']).agg(
         Total_Pedidos=('Pedidos', 'sum'),
         Total_Despachadas=('Despachadas', 'sum'),
         Total_Cancelado=('Cancelado', 'sum'),
@@ -282,7 +316,6 @@ def analyze_products(df, total_periodos):
         Lineas_Transacciones=('Pedidos', 'count')
     ).reset_index()
     
-    # Variabilidad mensual por SKU
     sku_mensual = df.groupby(['Producto_SKU', 'Periodo'])['Pedidos'].sum().unstack(fill_value=0)
     
     sku_stats = pd.DataFrame({
@@ -307,28 +340,18 @@ def analyze_products(df, total_periodos):
     sku_merged['Fill_Rate'] = (sku_merged['Total_Despachadas'] / sku_merged['Total_Pedidos']) * 100
     sku_merged['Tasa_Cancelacion'] = (sku_merged['Total_Cancelado'] / sku_merged['Total_Pedidos']) * 100
     
-    # Clasificación ABC de Productos
-    def clasificar_abc_sku(share_acum):
-        if share_acum <= 80.0:
-            return 'A'
-        elif share_acum <= 95.0:
-            return 'B'
-        else:
-            return 'C'
-    sku_merged['Clase_ABC'] = sku_merged['Share_Acumulado'].apply(clasificar_abc_sku)
+    sku_merged['Clase_ABC'] = sku_merged['Share_Acumulado'].apply(abc_prod)
     
-    # Clasificación XYZ de Productos (Variabilidad)
     def clasificar_xyz_sku(cv):
         if cv < 0.25:
-            return 'X'  # Muy estable / flujo constante
+            return 'X'
         elif cv < 0.50:
-            return 'Y'  # Moderadamente variable
+            return 'Y'
         else:
-            return 'Z'  # Alta variabilidad o estacionalidad
+            return 'Z'
     sku_merged['Clase_XYZ'] = sku_merged['CV_Demanda'].apply(clasificar_xyz_sku)
     sku_merged['Matriz_ABC_XYZ'] = sku_merged['Clase_ABC'] + sku_merged['Clase_XYZ']
     
-    # Recomendación para AnyLogic
     def recomendar_sku_anylogic(row):
         if row['Matriz_ABC_XYZ'] in ['AX', 'AY'] and row['Share_Volumen'] > 10.0:
             return 'Fase 1: Producto Estrella Principal (Alta Rotación)'
@@ -340,7 +363,6 @@ def analyze_products(df, total_periodos):
             return 'Fase 3: Catálogo Extendido'
             
     sku_merged['Recomendacion_AnyLogic'] = sku_merged.apply(recomendar_sku_anylogic, axis=1)
-    
     sku_merged.to_csv(os.path.join(OUTPUT_DIR, "04_clasificacion_productos_abc_xyz.csv"), index=False, sep=';', decimal=',')
     
     # Resumen Matriz ABC-XYZ
@@ -353,24 +375,22 @@ def analyze_products(df, total_periodos):
     ).reset_index()
     matriz_resumen.to_csv(os.path.join(OUTPUT_DIR, "05_matriz_abc_xyz_resumen.csv"), index=False, sep=';', decimal=',')
     
-    print("\n--- RESUMEN CLASIFICACIÓN DE PRODUCTOS ---")
-    print(f"Total Rubros: {len(rubro_summary)} | Total SKUs: {len(sku_merged)}")
-    print("\nTop 5 Rubros por Volumen:")
-    for idx, row in rubro_summary.head(5).iterrows():
-        print(f"  {idx+1}. {row['RubroDes']:<25}: {row['Total_Pedidos']:>10,d} un. ({row['Share_Volumen']:5.1f}%) | Fill Rate: {row['Fill_Rate']:5.1f}% | CV: {row['CV_Demanda']:.2f}")
+    print("\n--- RESUMEN 6 PRODUCTOS CONSOLIDADOS ---")
+    for idx, row in prod_summary.iterrows():
+        print(f"  {idx+1}. {row['Producto']:<35}: {row['Total_Pedidos']:>10,d} un. ({row['Share_Volumen']:5.1f}%) | Fill Rate: {row['Fill_Rate']:5.1f}% | CV: {row['CV_Demanda']:.3f} | Clase: {row['Clase_ABC']}")
         
-    print("\nMatriz ABC-XYZ de Productos (Distribución de SKUs):")
+    print("\nMatriz ABC-XYZ de SKUs:")
     print(pd.crosstab(sku_merged['Clase_ABC'], sku_merged['Clase_XYZ'], margins=True))
     
-    return rubro_summary, sku_merged, sku_mensual
+    return prod_summary, sku_merged, sku_mensual, prod_mensual
 
 # ------------------------------------------------------------------------------
-# 4. MÉTRICAS CLAVE, SERIES TEMPORALES Y AJUSTE DE DISTRIBUCIONES PARA ANYLOGIC
+# 4. PARÁMETROS, SERIES TEMPORALES Y DISTRIBUCIONES PARA ANYLOGIC
 # ------------------------------------------------------------------------------
-def analyze_anylogic_parameters(df, sku_merged, sku_mensual):
+def analyze_anylogic_parameters(df, prod_summary, sku_merged, prod_mensual, sku_mensual):
     print("\n>>> 4. Calculando Parámetros y Distribuciones Estocásticas para AnyLogic...")
     
-    # 4.1 Serie Temporal Total Mensual
+    # 4.1 Serie Temporal Mensual Global
     serie_mensual = df.groupby('Periodo').agg(
         Pedidos=('Pedidos', 'sum'),
         Despachadas=('Despachadas', 'sum'),
@@ -383,49 +403,41 @@ def analyze_anylogic_parameters(df, sku_merged, sku_mensual):
     serie_mensual['Tasa_Cancelacion'] = (serie_mensual['Cancelado'] / serie_mensual['Pedidos']) * 100
     serie_mensual.to_csv(os.path.join(OUTPUT_DIR, "06_serie_temporal_mensual.csv"), index=False, sep=';', decimal=',')
     
-    # 4.2 Ajuste de Distribuciones de Demanda para SKUs Clave y Demanda Global
-    # Seleccionar top SKUs y demanda global
-    top_skus = sku_merged.head(6)['Producto_SKU'].tolist()
-    
+    # 4.2 Ajuste de Distribuciones de Demanda para los 6 Productos Consolidados y Demanda Global
     fit_results = []
     
-    # Analizar demanda mensual global
     demanda_global_mensual = serie_mensual['Pedidos'].values
-    mu_g, std_g = np.mean(demanda_global_mensual), np.std(demanda_global_mensual, ddof=1)
+    mu_g, std_g = float(np.mean(demanda_global_mensual)), float(np.std(demanda_global_mensual, ddof=1))
     fit_results.append({
-        'Entidad': 'DEMANDA TOTAL PLANTA',
-        'Nivel': 'Mensual Global',
+        'Entidad': 'DEMANDA TOTAL PLANTA (6 PRODUCTOS)',
+        'Tipo': 'Total Fábrica',
         'Media_u': mu_g,
         'Std_s': std_g,
         'CV': std_g / mu_g,
-        'Min': np.min(demanda_global_mensual),
-        'Max': np.max(demanda_global_mensual),
-        'Mediana': np.median(demanda_global_mensual),
+        'Min': float(np.min(demanda_global_mensual)),
+        'Max': float(np.max(demanda_global_mensual)),
+        'Mediana': float(np.median(demanda_global_mensual)),
         'Mejor_Distribucion': 'Normal / Triangular',
         'Sintaxis_AnyLogic_Normal': f"normal({mu_g:.1f}, {std_g:.1f})",
         'Sintaxis_AnyLogic_Triangular': f"triangular({np.min(demanda_global_mensual):.1f}, {np.median(demanda_global_mensual):.1f}, {np.max(demanda_global_mensual):.1f})",
         'Capacidad_Mensual_Sugerida_85pct': f"{mu_g * 1.15:,.0f} un/mes"
     })
     
-    # Analizar cada top SKU a nivel mensual
-    for sku in top_skus:
-        sku_row = sku_merged[sku_merged['Producto_SKU'] == sku].iloc[0]
-        serie_sku = sku_mensual.loc[sku].values
-        mu = np.mean(serie_sku)
-        std = np.std(serie_sku, ddof=1) if len(serie_sku) > 1 else 0
-        cv = std / mu if mu > 0 else 0
-        min_v = np.min(serie_sku)
-        max_v = np.max(serie_sku)
-        med_v = np.median(serie_sku)
+    for prod in prod_summary['Producto'].tolist():
+        serie_p = prod_mensual.loc[prod].values
+        mu = float(np.mean(serie_p))
+        std = float(np.std(serie_p, ddof=1)) if len(serie_p) > 1 else 0.0
+        cv = std / mu if mu > 0 else 0.0
+        min_v = float(np.min(serie_p))
+        max_v = float(np.max(serie_p))
+        med_v = float(np.median(serie_p))
         
-        # Test Kolmogorov-Smirnov contra normal y lognormal
-        ks_norm = stats.kstest(serie_sku, 'norm', args=(mu, std))[1] if std > 0 else 0
-        
+        ks_norm = stats.kstest(serie_p, stats.norm(loc=mu, scale=std).cdf).pvalue if std > 0 else 0.0
         best_dist = 'Normal' if ks_norm > 0.05 else 'Triangular / Lognormal'
         
         fit_results.append({
-            'Entidad': sku,
-            'Nivel': f"Mensual SKU ({sku_row['Matriz_ABC_XYZ']})",
+            'Entidad': prod,
+            'Tipo': 'Familia Consolidada',
             'Media_u': mu,
             'Std_s': std,
             'CV': cv,
@@ -442,7 +454,7 @@ def analyze_anylogic_parameters(df, sku_merged, sku_mensual):
     df_fits.to_csv(os.path.join(OUTPUT_DIR, "07_ajuste_distribuciones_anylogic.csv"), index=False, sep=';', decimal=',')
     
     # 4.3 Mix Canal x Producto
-    mix_canal = df.groupby(['VentasXnegocio', 'RubroDes'])['Pedidos'].sum().unstack(fill_value=0)
+    mix_canal = df.groupby(['Canal', 'Producto'])['Pedidos'].sum().unstack(fill_value=0)
     mix_canal_pct = mix_canal.div(mix_canal.sum(axis=1), axis=0) * 100
     mix_canal_pct.to_csv(os.path.join(OUTPUT_DIR, "08_mix_canal_producto.csv"), sep=';', decimal=',')
     
@@ -451,12 +463,11 @@ def analyze_anylogic_parameters(df, sku_merged, sku_mensual):
 # ------------------------------------------------------------------------------
 # 5. GENERACIÓN DE GRÁFICOS VISUALES
 # ------------------------------------------------------------------------------
-def generate_charts(df, cli_merged, canal_summary, rubro_summary, sku_merged, serie_mensual, sku_mensual):
+def generate_charts(df, cli_merged, canal_summary, prod_summary, sku_merged, serie_mensual, prod_mensual):
     print("\n>>> 5. Generando Gráficos de Alta Calidad...")
     
     # 5.1 Pareto de Clientes
-    plt.figure(figsize=(10, 6), dpi=300)
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+    fig, ax1 = plt.subplots(figsize=(10, 6), dpi=300)
     x = range(1, len(cli_merged) + 1)
     y_vol = cli_merged['Share_Volumen']
     y_cum = cli_merged['Share_Acumulado']
@@ -480,28 +491,28 @@ def generate_charts(df, cli_merged, canal_summary, rubro_summary, sku_merged, se
     plt.savefig(os.path.join(CHARTS_DIR, "01_pareto_clientes.png"), dpi=300)
     plt.close()
     
-    # 5.2 Pareto de Productos (SKUs)
-    fig, ax1 = plt.subplots(figsize=(11, 6), dpi=300)
-    top_skus_df = sku_merged.head(15)
-    x_labels = [s.replace(' - ', '\n') for s in top_skus_df['Producto_SKU']]
+    # 5.2 Pareto de Productos Consolidados
+    fig, ax1 = plt.subplots(figsize=(10, 6), dpi=300)
+    x_pos = range(len(prod_summary))
+    labels = prod_summary['Producto'].tolist()
     
-    ax1.bar(range(len(top_skus_df)), top_skus_df['Total_Pedidos'] / 1000, color='#2ca02c', alpha=0.85, width=0.6)
+    ax1.bar(x_pos, prod_summary['Total_Pedidos'] / 1000, color='#2ca02c', alpha=0.85, width=0.55)
     ax1.set_ylabel('Miles de Unidades Pedidas', color='#2ca02c', fontsize=11, fontweight='bold')
-    ax1.set_xticks(range(len(top_skus_df)))
-    ax1.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=8)
+    ax1.set_xticks(x_pos)
+    ax1.set_xticklabels([l.replace(' / ', '\n') for l in labels], rotation=25, ha='right', fontsize=9, fontweight='bold')
     
     ax2 = ax1.twinx()
-    ax2.plot(range(len(top_skus_df)), top_skus_df['Share_Acumulado'], color='#d62728', marker='o', linewidth=2)
+    ax2.plot(x_pos, prod_summary['Share_Acumulado'], color='#d62728', marker='o', linewidth=2.5)
     ax2.axhline(80, color='gray', linestyle='--', label='Corte 80% (Clase A)')
     ax2.set_ylabel('% Acumulado', color='#d62728', fontsize=11, fontweight='bold')
     ax2.set_ylim(0, 105)
     
-    plt.title('Top 15 Productos (SKUs) y Curva de Concentración Pareto', fontsize=13, fontweight='bold', pad=15)
+    plt.title('Concentración de Demanda por Familias de Productos (6 Consolidadas)', fontsize=13, fontweight='bold', pad=15)
     fig.tight_layout()
     plt.savefig(os.path.join(CHARTS_DIR, "02_pareto_productos.png"), dpi=300)
     plt.close()
     
-    # 5.3 Matriz ABC-XYZ Scatter Plot
+    # 5.3 Matriz ABC-XYZ Scatter Plot de SKUs
     plt.figure(figsize=(10, 6), dpi=300)
     colors = {'A': '#d62728', 'B': '#ff7f0e', 'C': '#1f77b4'}
     for clase, grp in sku_merged.groupby('Clase_ABC'):
@@ -522,7 +533,7 @@ def generate_charts(df, cli_merged, canal_summary, rubro_summary, sku_merged, se
     
     plt.xlabel('Coeficiente de Variación (CV = σ / μ)', fontsize=11, fontweight='bold')
     plt.ylabel('Volumen Total Pedido (Miles de Unidades)', fontsize=11, fontweight='bold')
-    plt.title('Matriz ABC - XYZ de Productos Domitec', fontsize=13, fontweight='bold', pad=15)
+    plt.title('Matriz ABC - XYZ de SKUs Domitec (Catálogo Actualizado)', fontsize=13, fontweight='bold', pad=15)
     plt.legend(title='Clasificación ABC', loc='upper right')
     plt.tight_layout()
     plt.savefig(os.path.join(CHARTS_DIR, "03_matriz_abc_xyz.png"), dpi=300)
@@ -536,12 +547,13 @@ def generate_charts(df, cli_merged, canal_summary, rubro_summary, sku_merged, se
     ax1.plot(x_per, serie_mensual['Despachadas'] / 1000, marker='s', color='#2ca02c', linewidth=2, label='Despachadas')
     ax1.plot(x_per, serie_mensual['Cancelado'] / 1000, marker='^', color='#d62728', linewidth=1.8, linestyle='--', label='Cancelado')
     ax1.set_ylabel('Miles de Unidades', fontsize=11, fontweight='bold')
-    ax1.set_title('Evolución Temporal de la Demanda y Cumplimiento Mensual (2025 - 2026)', fontsize=13, fontweight='bold')
+    ax1.set_title('Evolución Temporal de Demanda y Cumplimiento Mensual (2025 - 2026)', fontsize=13, fontweight='bold')
     ax1.legend(loc='upper right')
     ax1.grid(True, linestyle='--', alpha=0.6)
     
-    ax2.plot(x_per, serie_mensual['Fill_Rate'], marker='d', color='#9467bd', linewidth=2, label='Fill Rate Real (%)')
-    ax2.axhline(85.7, color='red', linestyle=':', label='Fill Rate Promedio (85.7%)')
+    avg_fill_rate = (serie_mensual['Despachadas'].sum() / serie_mensual['Pedidos'].sum()) * 100
+    ax2.plot(x_per, serie_mensual['Fill_Rate'], marker='d', color='#9467bd', linewidth=2, label=f'Fill Rate Real (%)')
+    ax2.axhline(avg_fill_rate, color='red', linestyle=':', label=f'Fill Rate Promedio ({avg_fill_rate:.1f}%)')
     ax2.set_ylabel('Fill Rate (%)', fontsize=11, fontweight='bold')
     ax2.set_xlabel('Período (Año-Mes)', fontsize=11, fontweight='bold')
     ax2.set_ylim(60, 100)
@@ -554,27 +566,24 @@ def generate_charts(df, cli_merged, canal_summary, rubro_summary, sku_merged, se
     plt.savefig(os.path.join(CHARTS_DIR, "04_serie_temporal_demanda_y_fillrate.png"), dpi=300)
     plt.close()
     
-    # 5.5 Demanda Mensual por Rubro Principal
+    # 5.5 Demanda Mensual por las 6 Familias Consolidadas
     plt.figure(figsize=(12, 6), dpi=300)
-    top_rubros = rubro_summary.head(5)['RubroDes'].tolist()
-    rubro_mensual_df = df[df['RubroDes'].isin(top_rubros)].groupby(['Periodo', 'RubroDes'])['Pedidos'].sum().unstack(fill_value=0)
-    
-    for rub in top_rubros:
-        plt.plot(rubro_mensual_df.index, rubro_mensual_df[rub] / 1000, marker='o', linewidth=2, label=rub)
+    for prod in prod_summary['Producto'].tolist():
+        plt.plot(prod_mensual.columns, prod_mensual.loc[prod] / 1000, marker='o', linewidth=2, label=prod)
         
-    plt.title('Evolución Mensual de Demanda por Rubro Principal', fontsize=13, fontweight='bold', pad=15)
+    plt.title('Evolución Mensual de Demanda por Familias de Productos (6 Consolidadas)', fontsize=13, fontweight='bold', pad=15)
     plt.xlabel('Período (Año-Mes)', fontsize=11, fontweight='bold')
     plt.ylabel('Miles de Unidades Pedidas', fontsize=11, fontweight='bold')
     plt.xticks(rotation=45, ha='right', fontsize=9)
-    plt.legend(title='Rubro', loc='upper right')
+    plt.legend(title='Producto', loc='upper right')
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.tight_layout()
     plt.savefig(os.path.join(CHARTS_DIR, "05_demanda_por_rubro_mensual.png"), dpi=300)
     plt.close()
     
-    # 5.6 Variabilidad de la Demanda por Canal (Efecto Látigo / Agregación)
+    # 5.6 Variabilidad de Demanda por Canal (Efecto Látigo / Agregación)
     plt.figure(figsize=(9, 5), dpi=300)
-    canal_mensual_df = df.groupby(['Periodo', 'VentasXnegocio'])['Pedidos'].sum().unstack(fill_value=0)
+    canal_mensual_df = df.groupby(['Periodo', 'Canal'])['Pedidos'].sum().unstack(fill_value=0)
     cv_canales = (canal_mensual_df.std() / canal_mensual_df.mean()).sort_values()
     
     bars = plt.bar(cv_canales.index, cv_canales.values, color=['#2ca02c', '#ff7f0e', '#d62728'], width=0.5, alpha=0.85)
@@ -582,7 +591,7 @@ def generate_charts(df, cli_merged, canal_summary, rubro_summary, sku_merged, se
         yval = bar.get_height()
         plt.text(bar.get_x() + bar.get_width()/2.0, yval + 0.01, f"CV = {yval:.3f}", ha='center', va='bottom', fontweight='bold')
         
-    plt.title('Variabilidad de la Demanda por Canal Comercial (Coeficiente de Variación CV)', fontsize=12, fontweight='bold', pad=15)
+    plt.title('Variabilidad de Demanda por Canal Comercial (Coeficiente de Variación CV)', fontsize=12, fontweight='bold', pad=15)
     plt.ylabel('CV = Desv. Estándar / Media', fontsize=11, fontweight='bold')
     plt.ylim(0, max(cv_canales.values) * 1.25)
     plt.grid(axis='y', linestyle='--', alpha=0.6)
@@ -590,7 +599,7 @@ def generate_charts(df, cli_merged, canal_summary, rubro_summary, sku_merged, se
     plt.savefig(os.path.join(CHARTS_DIR, "06_comparacion_variabilidad_canales.png"), dpi=300)
     plt.close()
     
-    print("    -> Todos los gráficos fueron generados exitosamente en:", CHARTS_DIR)
+    print("    -> Gráficos generados exitosamente en:", CHARTS_DIR)
 
 # ------------------------------------------------------------------------------
 # 6. FUNCIÓN PRINCIPAL
@@ -602,9 +611,9 @@ def main():
     
     df, periodos_unicos = load_and_clean_data(DATA_PATH)
     cli_merged, canal_summary, cli_mensual = analyze_customers(df, periodos_unicos)
-    rubro_summary, sku_merged, sku_mensual = analyze_products(df, periodos_unicos)
-    serie_mensual, df_fits, mix_canal_pct = analyze_anylogic_parameters(df, sku_merged, sku_mensual)
-    generate_charts(df, cli_merged, canal_summary, rubro_summary, sku_merged, serie_mensual, sku_mensual)
+    prod_summary, sku_merged, sku_mensual, prod_mensual = analyze_products(df, periodos_unicos)
+    serie_mensual, df_fits, mix_canal_pct = analyze_anylogic_parameters(df, prod_summary, sku_merged, prod_mensual, sku_mensual)
+    generate_charts(df, cli_merged, canal_summary, prod_summary, sku_merged, serie_mensual, prod_mensual)
     
     print("\n" + "=" * 80)
     print(" ANÁLISIS COMPLETADO EXITOSAMENTE.")
